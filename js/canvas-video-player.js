@@ -5,19 +5,18 @@ var cvpHandlers = {
 	windowResizeHandler: null
 };
 
-var CanvasVideoPlayer = function(options) {
+var CanvasVideoPlayer = function (options) {
 	var i;
-
 	this.options = {
-		framesPerSecond: 25,
+		framesPerSecond: 60,
 		hideVideo: true,
 		autoplay: false,
 		audio: false,
 		timelineSelector: false,
-		resetOnLastFrame: true,
+		resetOnLastFrame: false,
 		loop: false
 	};
-
+	this.endCallback = options.endCallback
 	for (i in options) {
 		this.options[i] = options[i];
 	}
@@ -48,7 +47,7 @@ var CanvasVideoPlayer = function(options) {
 	}
 
 	if (this.options.audio) {
-		if (typeof(this.options.audio) === 'string'){
+		if (typeof (this.options.audio) === 'string') {
 			// Use audio selector from options if specified
 			this.audio = document.querySelectorAll(this.options.audio)[0];
 
@@ -84,7 +83,7 @@ var CanvasVideoPlayer = function(options) {
 	this.bind();
 };
 
-CanvasVideoPlayer.prototype.init = function() {
+CanvasVideoPlayer.prototype.init = function () {
 	this.video.load();
 
 	this.setCanvasSize();
@@ -95,7 +94,7 @@ CanvasVideoPlayer.prototype.init = function() {
 };
 
 // Used most of the jQuery code for the .offset() method
-CanvasVideoPlayer.prototype.getOffset = function(elem) {
+CanvasVideoPlayer.prototype.getOffset = function (elem) {
 	var docElem, rect, doc;
 
 	if (!elem) {
@@ -116,7 +115,7 @@ CanvasVideoPlayer.prototype.getOffset = function(elem) {
 	}
 };
 
-CanvasVideoPlayer.prototype.jumpTo = function(percentage) {
+CanvasVideoPlayer.prototype.jumpTo = function (percentage) {
 	this.video.currentTime = this.video.duration * percentage;
 
 	if (this.options.audio) {
@@ -124,16 +123,16 @@ CanvasVideoPlayer.prototype.jumpTo = function(percentage) {
 	}
 };
 
-CanvasVideoPlayer.prototype.bind = function() {
+CanvasVideoPlayer.prototype.bind = function () {
 	var self = this;
 
 	// Playes or pauses video on canvas click
-	this.canvas.addEventListener('click', cvpHandlers.canvasClickHandler = function() {
+	this.canvas.addEventListener('click', cvpHandlers.canvasClickHandler = function () {
 		self.playPause();
 	});
 
 	// On every time update draws frame
-	this.video.addEventListener('timeupdate', cvpHandlers.videoTimeUpdateHandler = function() {
+	this.video.addEventListener('timeupdate', cvpHandlers.videoTimeUpdateHandler = function () {
 		self.drawFrame();
 		if (self.options.timelineSelector) {
 			self.updateTimeline();
@@ -141,7 +140,7 @@ CanvasVideoPlayer.prototype.bind = function() {
 	});
 
 	// Draws first frame
-	this.video.addEventListener('canplay', cvpHandlers.videoCanPlayHandler = function() {
+	this.video.addEventListener('canplay', cvpHandlers.videoCanPlayHandler = function () {
 		self.drawFrame();
 	});
 
@@ -151,12 +150,12 @@ CanvasVideoPlayer.prototype.bind = function() {
 	}
 
 	if (self.options.autoplay) {
-	  self.play();
+		self.play();
 	}
 
 	// Click on the video seek video
 	if (self.options.timelineSelector) {
-		this.timeline.addEventListener('click', function(e) {
+		this.timeline.addEventListener('click', function (e) {
 			var offset = e.clientX - self.getOffset(self.canvas).left;
 			var percentage = offset / self.timeline.offsetWidth;
 			self.jumpTo(percentage);
@@ -164,16 +163,16 @@ CanvasVideoPlayer.prototype.bind = function() {
 	}
 
 	// Cache canvas size on resize (doing it only once in a second)
-	window.addEventListener('resize', cvpHandlers.windowResizeHandler = function() {
+	window.addEventListener('resize', cvpHandlers.windowResizeHandler = function () {
 		clearTimeout(self.resizeTimeoutReference);
 
-		self.resizeTimeoutReference = setTimeout(function() {
+		self.resizeTimeoutReference = setTimeout(function () {
 			self.setCanvasSize();
 			self.drawFrame();
 		}, self.RESIZE_TIMEOUT);
 	});
 
-	this.unbind = function() {
+	this.unbind = function () {
 		this.canvas.removeEventListener('click', cvpHandlers.canvasClickHandler);
 		this.video.removeEventListener('timeupdate', cvpHandlers.videoTimeUpdateHandler);
 		this.video.removeEventListener('canplay', cvpHandlers.videoCanPlayHandler);
@@ -185,12 +184,12 @@ CanvasVideoPlayer.prototype.bind = function() {
 	};
 };
 
-CanvasVideoPlayer.prototype.updateTimeline = function() {
+CanvasVideoPlayer.prototype.updateTimeline = function () {
 	var percentage = (this.video.currentTime * 100 / this.video.duration).toFixed(2);
 	this.timelinePassed.style.width = percentage + '%';
 };
 
-CanvasVideoPlayer.prototype.setCanvasSize = function() {
+CanvasVideoPlayer.prototype.setCanvasSize = function () {
 	this.width = this.canvas.clientWidth;
 	this.height = this.canvas.clientHeight;
 
@@ -198,7 +197,7 @@ CanvasVideoPlayer.prototype.setCanvasSize = function() {
 	this.canvas.setAttribute('height', this.height);
 };
 
-CanvasVideoPlayer.prototype.play = function() {
+CanvasVideoPlayer.prototype.play = function () {
 	this.lastTime = Date.now();
 	this.playing = true;
 	this.loop();
@@ -210,7 +209,7 @@ CanvasVideoPlayer.prototype.play = function() {
 	}
 };
 
-CanvasVideoPlayer.prototype.pause = function() {
+CanvasVideoPlayer.prototype.pause = function () {
 	this.playing = false;
 
 	if (this.options.audio) {
@@ -218,7 +217,7 @@ CanvasVideoPlayer.prototype.pause = function() {
 	}
 };
 
-CanvasVideoPlayer.prototype.playPause = function() {
+CanvasVideoPlayer.prototype.playPause = function () {
 	if (this.playing) {
 		this.pause();
 	}
@@ -227,18 +226,18 @@ CanvasVideoPlayer.prototype.playPause = function() {
 	}
 };
 
-CanvasVideoPlayer.prototype.loop = function() {
+CanvasVideoPlayer.prototype.loop = function () {
 	var self = this;
 
 	var time = Date.now();
 	var elapsed = (time - this.lastTime) / 1000;
 
 	// Render
-	if(elapsed >= (1 / this.options.framesPerSecond)) {
+	if (elapsed >= (1 / this.options.framesPerSecond)) {
 		this.video.currentTime = this.video.currentTime + elapsed;
 		this.lastTime = time;
 		// Resync audio and video if they drift more than 300ms apart
-		if(this.audio && Math.abs(this.audio.currentTime - this.video.currentTime) > 0.3){
+		if (this.audio && Math.abs(this.audio.currentTime - this.video.currentTime) > 0.3) {
 			this.audio.currentTime = this.video.currentTime;
 		}
 	}
@@ -246,7 +245,7 @@ CanvasVideoPlayer.prototype.loop = function() {
 	// If we are at the end of the video stop
 	if (this.video.currentTime >= this.video.duration) {
 		this.playing = false;
-
+		this.endCallback(this)
 		if (this.options.resetOnLastFrame === true) {
 			this.video.currentTime = 0;
 		}
@@ -258,7 +257,7 @@ CanvasVideoPlayer.prototype.loop = function() {
 	}
 
 	if (this.playing) {
-		this.animationFrame = requestAnimationFrame(function(){
+		this.animationFrame = requestAnimationFrame(function () {
 			self.loop();
 		});
 	}
@@ -267,6 +266,6 @@ CanvasVideoPlayer.prototype.loop = function() {
 	}
 };
 
-CanvasVideoPlayer.prototype.drawFrame = function() {
+CanvasVideoPlayer.prototype.drawFrame = function () {
 	this.ctx.drawImage(this.video, 0, 0, this.width, this.height);
 };

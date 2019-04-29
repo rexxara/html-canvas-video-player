@@ -33,7 +33,6 @@ body {
 
 .canvas,
 .video {
-	height: 100%;
 	left: 0;
 	position: absolute;
 	top: 0;
@@ -41,6 +40,8 @@ body {
 	background: #000;
 	z-index: 5;
 	cursor: pointer;
+}
+.canvas{
 }
 
 .video-timeline {
